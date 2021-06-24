@@ -8,17 +8,18 @@ public class RouterManager {
 
     private Router router;
     private final Scanner scanner;
-    private static int multicastPort = 4446;
+    private static int port = 6060;
 
     public RouterManager() throws IOException {
         // declara socket cliente e obtem endereço IP do servidor com o DNS
         this.router = new Router(new DatagramSocket(), InetAddress.getByName("localhost"));
-
         // cria o stream do teclado
         this.scanner = new Scanner(System.in);
 
         //Inicia thread responsável por receber mensagens
-        new UnicastReceiver(this.router.getSocket(), this.router.getIPAddress()).start();
+        new UnicastReceiver(this.router).start();
+
+        new Rip(this.router).start();
 
         new PrintRoutingTable(this.router).start();
     }

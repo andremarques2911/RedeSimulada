@@ -46,8 +46,16 @@ public class Router {
         return this.routingTable.stream().filter(rt -> rt.getExitPort().equals("Local")).collect(Collectors.toList());
     }
 
+    public List<RoutingTable> getDirectPorts() {
+        return this.routingTable.stream().filter(rt -> rt.getMetric() == 1).collect(Collectors.toList());
+    }
+
     public void addPort(RoutingTable routingTable) {
         this.routingTable.add(routingTable);
+    }
+
+    public List<RoutingTable> updateRoutingTable(List<RoutingTable> routingTable) {
+        return null;
     }
 
 }

@@ -1,6 +1,8 @@
 package com.redes;
 
-public class RoutingTable {
+import java.io.Serializable;
+
+public class RoutingTable implements Serializable {
 
     private String destinatioPort;
     private int metric;
