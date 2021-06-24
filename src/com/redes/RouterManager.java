@@ -8,20 +8,12 @@ public class RouterManager {
 
     private Router router;
     private final Scanner scanner;
-    private static int port = 6060;
 
     public RouterManager() throws IOException {
         // declara socket cliente e obtem endereço IP do servidor com o DNS
-        this.router = new Router(new DatagramSocket(), InetAddress.getByName("localhost"));
+        this.router = new Router(InetAddress.getByName("localhost"));
         // cria o stream do teclado
         this.scanner = new Scanner(System.in);
-
-        //Inicia thread responsável por receber mensagens
-        new UnicastReceiver(this.router).start();
-
-        new Rip(this.router).start();
-
-        new PrintRoutingTable(this.router).start();
     }
 
     public void run() throws IOException {
@@ -43,7 +35,11 @@ public class RouterManager {
                     System.out.print("Informe a porta de destino: ");
                     destinationPort = this.scanner.nextLine();
                     rt = new RoutingTable(destinationPort, 0, "Local");
+                    this.router.addSocket(Integer.parseInt(destinationPort));
                     this.router.addPort(rt);
+                    new UnicastReceiver(this.router, this.router.getSockets().get(Integer.parseInt(destinationPort))).start();
+                    new Rip(this.router).start();
+                    new PrintRoutingTable(this.router).start();
                     break;
                 case "2":
                     System.out.print("Informe a porta de destino: ");
@@ -54,13 +50,13 @@ public class RouterManager {
                     this.router.addPort(rt);
                     break;
                 default:
-                    byte[] sendData = sentence.getBytes();
+                    //byte[] sendData = sentence.getBytes();
 
                     // cria pacote com o dado, o endereço do server e porta do servidor
-                    DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, this.router.getIPAddress(), 9880);
+                    //DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, this.router.getIPAddress(), 9880);
 
                     //envia o pacote
-                    this.router.getSocket().send(sendPacket);
+                    //this.router.getSockets().get().send(sendPacket);
             }
         }
     }

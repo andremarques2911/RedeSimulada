@@ -14,7 +14,7 @@ public class RoutingTable implements Serializable {
         this.exitPort = exitPort;
     }
 
-    public String getDestinatioPort() {
+    public String getDestinationPort() {
         return destinatioPort;
     }
 

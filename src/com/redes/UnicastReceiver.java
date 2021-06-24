@@ -4,16 +4,21 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.List;
 
 public class UnicastReceiver extends Thread {
 
     private Router router;
     private MulticastReceiver multicastReceiver;
+    private DatagramSocket datagramSocket;
     private final int MAX_BUF = 65000;
 
-    public UnicastReceiver(Router router) {
+    public UnicastReceiver(Router router, DatagramSocket socket) {
         this.router = router;
+        this.datagramSocket = socket;
         this.multicastReceiver = null;
     }
 
@@ -22,12 +27,12 @@ public class UnicastReceiver extends Thread {
             try {
                 byte[] data = new byte[MAX_BUF];
                 DatagramPacket receivedPacket = new DatagramPacket(data, data.length);
-                this.router.getSocket().receive(receivedPacket);
-                String listData = new String(receivedPacket.getData(), 0, receivedPacket.getLength());
+                this.datagramSocket.receive(receivedPacket);
+                ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(receivedPacket.getData()));
 
-                ObjectInputStream inputStream = new ObjectInputStream(new ByteArrayInputStream(listData.getBytes()));
-                List<RoutingTable> list = (List<RoutingTable>) inputStream.readObject();
-                this.router.updateRoutingTable(list);
+                List<RoutingTable> list = (List<RoutingTable>) ois.readObject();
+                this.router.updateRoutingTable(receivedPacket.getPort(), list);
+                this.router.alive(receivedPacket.getPort());
             } catch (IOException | ClassNotFoundException e) {
                 e.printStackTrace();
             }

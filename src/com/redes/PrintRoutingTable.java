@@ -1,7 +1,5 @@
 package com.redes;
 
-import java.util.List;
-
 public class PrintRoutingTable extends Thread {
 
     private Router router;
@@ -16,7 +14,7 @@ public class PrintRoutingTable extends Thread {
             if (!this.router.getRoutingTable().isEmpty()) {
                 System.out.println("\n\n##################################");
                 for (RoutingTable rt : this.router.getRoutingTable()) {
-                    System.out.println(rt.getDestinatioPort() + " " + rt.getMetric() + " " + rt.getExitPort());
+                    System.out.println(rt.getDestinationPort() + " " + rt.getMetric() + " " + rt.getExitPort());
                 }
                 System.out.println("##################################");
             }

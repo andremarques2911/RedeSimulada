@@ -3,27 +3,52 @@ package com.redes;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 public class Router {
 
-    private DatagramSocket socket;
+    private Map<Integer, DatagramSocket> sockets;
     private InetAddress IPAddress;
     private List<RoutingTable> routingTable;
+    private KeepAlive keepAlive;
 
-    public Router(DatagramSocket socket, InetAddress IPAddress) {
-        this.socket = socket;
+    public Router(InetAddress IPAddress) {
         this.IPAddress = IPAddress;
         this.routingTable = new ArrayList<>();
+        this.sockets = new HashMap<>();
+        this.keepAlive = new KeepAlive(this);
+        keepAlive.start();
     }
 
-    public DatagramSocket getSocket() {
-        return socket;
+    public void addSocket(int port) {
+        try {
+            sockets.put(port, new DatagramSocket(port));
+        } catch (Exception e) {
+            System.out.println("Erro to insert new socket with port " + port);
+        }
     }
 
-    public void setSocket(DatagramSocket socket) {
-        this.socket = socket;
+    public void disable(int port) {
+
+        System.out.println("Removing all of exit port " + port);
+
+        this.routingTable = this.routingTable
+                .stream()
+                .filter(p -> !p.getExitPort().equals(String.valueOf(port)))
+                .collect(Collectors.toList());
+
+        this.keepAlive.times.remove(port);
+    }
+
+    public Map<Integer, DatagramSocket> getSockets() {
+        return sockets;
+    }
+
+    public void setSockets(Map<Integer, DatagramSocket> sockets) {
+        this.sockets = sockets;
     }
 
     public InetAddress getIPAddress() {
@@ -54,8 +79,47 @@ public class Router {
         this.routingTable.add(routingTable);
     }
 
-    public List<RoutingTable> updateRoutingTable(List<RoutingTable> routingTable) {
-        return null;
+    public void alive(Integer port) {
+        this.keepAlive.alive(port);
+    }
+
+    public void updateRoutingTable(Integer port, List<RoutingTable> routingTable) {
+        for (RoutingTable received : routingTable) {
+            this.routingTable.stream()
+                    .filter(p -> p.getDestinationPort().equals(received.getDestinationPort())
+                            && p.getMetric() > (received.getMetric() + 1)
+                            && !received.getExitPort().equals("Local")
+                    )
+                    .forEach(r -> {
+                        System.out.print(String.format("Alterada rota [%s %s %s] para [%s %s %s]", r.getDestinationPort(), r.getMetric(), r.getExitPort()));
+                        r.setMetric(received.getMetric());
+                        r.setExitPort(String.valueOf(port));
+                        System.out.print(String.format(" para [%s %s %s]", r.getDestinationPort(), r.getMetric(), r.getExitPort()));
+                        System.out.println();
+                    });
+        }
+
+        routingTable
+                .stream()
+                .filter(p -> this.routingTable.stream().filter(r -> r.getDestinationPort().equals(p.getDestinationPort())).count() == 0 )
+                .forEach(r -> {
+                    int metric = r.getMetric() + 1;
+
+                    RoutingTable item = new RoutingTable(r.getDestinationPort(), metric, port.toString());
+                    
+                    System.out.println(String.format("Adicionada rota [%s %s %s]", item.getDestinationPort(), item.getMetric(), item.getExitPort()));
+                    this.routingTable.add(item);
+                });
+
+        for (RoutingTable received : this.routingTable) {
+            if (received.getExitPort().equals(port)) {
+                if (routingTable.stream().filter(p -> p.getDestinationPort().equals(received.getDestinationPort())).count() == 0) {
+                    System.out.println(String.format("Removida rota [%s %s %s]", received.getDestinationPort(), received.getMetric(), received.getExitPort()));
+                    this.routingTable.remove(received);
+                }
+            }
+        }
+
     }
 
 }
