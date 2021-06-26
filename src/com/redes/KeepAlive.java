@@ -28,8 +28,8 @@ public class KeepAlive extends Thread{
                         .forEach(e -> times.put(e.getKey(), e.getValue() + period));
 
 
-                times.entrySet()
-                        .forEach(e -> System.out.println(e.getKey() + " | " + e.getValue()));
+//                times.entrySet()
+//                        .forEach(e -> System.out.println(e.getKey() + " | " + e.getValue()));
 
 
                 times.entrySet()

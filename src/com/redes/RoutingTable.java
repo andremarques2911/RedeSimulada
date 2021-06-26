@@ -4,22 +4,30 @@ import java.io.Serializable;
 
 public class RoutingTable implements Serializable {
 
-    private String destinatioPort;
+    private String destinationPort;
     private int metric;
     private String exitPort;
+    private String localPort;
 
-    public RoutingTable(String destinatioPort, int metric, String exitPort) {
-        this.destinatioPort = destinatioPort;
+    public RoutingTable(String destinationPort, int metric, String exitPort) {
+        this.destinationPort = destinationPort;
         this.metric = metric;
         this.exitPort = exitPort;
     }
 
-    public String getDestinationPort() {
-        return destinatioPort;
+    public RoutingTable(String destinationPort, int metric, String exitPort, String localPort) {
+        this.destinationPort = destinationPort;
+        this.metric = metric;
+        this.exitPort = exitPort;
+        this.localPort = localPort;
     }
 
-    public void setDestinatioPort(String destinatioPort) {
-        this.destinatioPort = destinatioPort;
+    public String getDestinationPort() {
+        return destinationPort;
+    }
+
+    public void setDestinationPort(String destinationPort) {
+        this.destinationPort = destinationPort;
     }
 
     public int getMetric() {
@@ -36,6 +44,14 @@ public class RoutingTable implements Serializable {
 
     public void setExitPort(String exitPort) {
         this.exitPort = exitPort;
+    }
+
+    public String getLocalPort() {
+        return localPort;
+    }
+
+    public void setLocalPort(String localPort) {
+        this.localPort = localPort;
     }
 
 }

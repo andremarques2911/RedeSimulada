@@ -32,7 +32,6 @@ public class Router {
     }
 
     public void disable(int port) {
-
         System.out.println("Removing all of exit port " + port);
 
         this.routingTable = this.routingTable
@@ -75,6 +74,24 @@ public class Router {
         return this.routingTable.stream().filter(rt -> rt.getMetric() == 1).collect(Collectors.toList());
     }
 
+    public DatagramSocket getSocketByPort(Integer port) {
+        RoutingTable router = this.routingTable.stream().filter(rt -> rt.getDestinationPort().equals(port.toString())).findFirst().orElse(null);
+        if (router == null) {
+            System.out.println("Não possui rota para a porta " + port);
+            return null;
+        }
+        return this.sockets.get(Integer.parseInt(router.getLocalPort()));
+    }
+
+    public Integer getExitPort(String destinationPort) {
+        RoutingTable routingTable = this.routingTable.stream().filter(rt -> rt.getDestinationPort().equals(destinationPort)).findFirst().orElse(null);
+        if (routingTable == null) {
+            System.err.println("Não possui rota para a porta " + destinationPort);
+            return null;
+        }
+        return Integer.parseInt(routingTable.getExitPort());
+    }
+
     public void addPort(RoutingTable routingTable) {
         this.routingTable.add(routingTable);
     }
@@ -83,7 +100,7 @@ public class Router {
         this.keepAlive.alive(port);
     }
 
-    public void updateRoutingTable(Integer port, List<RoutingTable> routingTable) {
+    public void updateRoutingTable(Integer port, Integer localPort, List<RoutingTable> routingTable) {
         for (RoutingTable received : routingTable) {
             this.routingTable.stream()
                     .filter(p -> p.getDestinationPort().equals(received.getDestinationPort())
@@ -101,25 +118,24 @@ public class Router {
 
         routingTable
                 .stream()
-                .filter(p -> this.routingTable.stream().filter(r -> r.getDestinationPort().equals(p.getDestinationPort())).count() == 0 )
+                .filter(p -> this.routingTable.stream().noneMatch(r -> r.getDestinationPort().equals(p.getDestinationPort())))
                 .forEach(r -> {
                     int metric = r.getMetric() + 1;
 
-                    RoutingTable item = new RoutingTable(r.getDestinationPort(), metric, port.toString());
+                    RoutingTable item = new RoutingTable(r.getDestinationPort(), metric, port.toString(), localPort.toString());
                     
                     System.out.println(String.format("Adicionada rota [%s %s %s]", item.getDestinationPort(), item.getMetric(), item.getExitPort()));
                     this.routingTable.add(item);
                 });
 
         for (RoutingTable received : this.routingTable) {
-            if (received.getExitPort().equals(port)) {
-                if (routingTable.stream().filter(p -> p.getDestinationPort().equals(received.getDestinationPort())).count() == 0) {
+            if (received.getExitPort().equals(port.toString())) {
+                if (routingTable.stream().noneMatch(p -> p.getDestinationPort().equals(received.getDestinationPort()))) {
                     System.out.println(String.format("Removida rota [%s %s %s]", received.getDestinationPort(), received.getMetric(), received.getExitPort()));
                     this.routingTable.remove(received);
                 }
             }
         }
-
     }
 
 }

@@ -20,7 +20,7 @@ public class RouterManager {
         while (true) {
             System.out.println("Digite 1 para configurar uma porta local do roteador.");
             System.out.println("Digite 2 para configurar uma porta vizinha do roteador.");
-            // lê uma linha do teclado
+            System.out.println("Digite 3 para enviar uma mensagem para um roteador.");
             System.out.print("Comando: ");
             String sentence = this.scanner.nextLine();
 
@@ -46,17 +46,29 @@ public class RouterManager {
                     destinationPort = this.scanner.nextLine();
                     System.out.print("Informe a porta de saída: ");
                     String exitPort = this.scanner.nextLine();
-                    rt = new RoutingTable(destinationPort, 1, exitPort);
+                    System.out.print("Informe a porta local: ");
+                    String localPort = this.scanner.nextLine();
+                    rt = new RoutingTable(destinationPort, 1, exitPort, localPort);
                     this.router.addPort(rt);
                     break;
-                default:
-                    //byte[] sendData = sentence.getBytes();
+                case "3":
+                    System.out.print("Informe a porta do roteador de destino: ");
+                    destinationPort = this.scanner.nextLine();
+                    System.out.print("Informe a mensagem: ");
+                    String message = this.scanner.nextLine();
+                    String data = "::msg " + destinationPort + " " + message;
+                    byte[] sendData = data.getBytes();
+                    Integer port = this.router.getExitPort(destinationPort);
 
                     // cria pacote com o dado, o endereço do server e porta do servidor
-                    //DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, this.router.getIPAddress(), 9880);
-
+                    DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, this.router.getIPAddress(), port);
+                    System.out.println(String.format(" Enviado pacote para o destino %s pela porta %s", destinationPort, port));
                     //envia o pacote
-                    //this.router.getSockets().get().send(sendPacket);
+                    DatagramSocket socket = this.router.getSocketByPort(port);
+                    if (socket != null) {
+                        socket.send(sendPacket);
+                    }
+                    break;
             }
         }
     }
