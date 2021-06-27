@@ -21,8 +21,8 @@ public class UnicastReceiver extends Thread {
     public void run() {
         while(true) {
             try {
-                byte[] data = new byte[MAX_BUF];
-                DatagramPacket receivedPacket = new DatagramPacket(data, data.length);
+                byte[] buf = new byte[MAX_BUF];
+                DatagramPacket receivedPacket = new DatagramPacket(buf, buf.length);
                 this.datagramSocket.receive(receivedPacket);
                 String message = new String(receivedPacket.getData(), 0, receivedPacket.getLength());
                 if (message.startsWith("::msg")) {
@@ -38,6 +38,42 @@ public class UnicastReceiver extends Thread {
                         System.out.println("O pacote não era para este roteador");
                         String send = "::msg " + destinationPort + " " + message;
                         byte[] sendData = send.getBytes();
+                        Integer port = this.router.getExitPort(destinationPort);
+                        // cria pacote com o dado, o endereço do server e porta do servidor
+                        DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, this.router.getIPAddress(), port);
+                        //envia o pacote
+                        DatagramSocket socket = this.router.getSocketByPort(port);
+                        System.out.println("Enviando para o destino pela porta " + socket.getLocalPort());
+                        if (socket != null) {
+                            socket.send(sendPacket);
+                        }
+                    }
+                } else if (message.startsWith("::file")) {
+                    System.out.println("Pacote recebido da porta " + receivedPacket.getPort());
+                    String[] splitMessage = message.split(" ");
+                    String fileName = splitMessage[2];
+                    String destinationPort = splitMessage[1];
+
+                    if (this.router.getSockets().get(Integer.parseInt(destinationPort)) != null) {
+                        System.out.println("O pacote era para este roteador");
+                        byte[] data = receivedPacket.getData();
+                        byte[] fileBytes = new byte[MAX_BUF];
+                        int positionA = 0;
+                        int positionB = 0;
+                        // pega os bytes da imagem que estao logo apos dos bytes do comando "::file "
+                        for (byte b : data) {
+                            if (positionB > 8 + destinationPort.length() + fileName.length()) {
+                                fileBytes[positionA++] = b;
+                            }
+                            positionB++;
+                        }
+                        // cria diretorio para a sala caso nao exista e grava o arquivo de imagem na pasta
+                        String dir = "src/com/redes/files/" + destinationPort;
+                        Utils.createFile(fileBytes, dir, fileName);
+                        System.out.println("Arquivo criado no diretório " + dir);
+                    } else {
+                        System.out.println("O pacote não era para este roteador");
+                        byte[] sendData = receivedPacket.getData();
                         Integer port = this.router.getExitPort(destinationPort);
                         // cria pacote com o dado, o endereço do server e porta do servidor
                         DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, this.router.getIPAddress(), port);

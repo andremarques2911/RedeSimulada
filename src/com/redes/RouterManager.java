@@ -1,7 +1,13 @@
 package com.redes;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.*;
+import java.nio.file.FileSystem;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Optional;
 import java.util.Scanner;
 
 public class RouterManager {
@@ -21,11 +27,17 @@ public class RouterManager {
             System.out.println("Digite 1 para configurar uma porta local do roteador.");
             System.out.println("Digite 2 para configurar uma porta vizinha do roteador.");
             System.out.println("Digite 3 para enviar uma mensagem para um roteador.");
+            System.out.println("Digite 4 para enviar um arquivo para um roteador.");
+            System.out.println("Digite 5 para visualizar a tabela de roteamento do roteador.");
             System.out.print("Comando: ");
             String sentence = this.scanner.nextLine();
 
-            String destinationPort = null;
+            byte[] sendData = null;
+            Integer port = null;
             RoutingTable rt = null;
+            DatagramSocket socket = null;
+            String destinationPort = null;
+            DatagramPacket sendPacket = null;
             switch (sentence) {
                 case "1":
                     if (this.router.getLocalPorts().size() == 2) {
@@ -39,7 +51,7 @@ public class RouterManager {
                     this.router.addPort(rt);
                     new UnicastReceiver(this.router, this.router.getSockets().get(Integer.parseInt(destinationPort))).start();
                     new Rip(this.router).start();
-                    new PrintRoutingTable(this.router).start();
+//                    new PrintRoutingTable(this.router).start();
                     break;
                 case "2":
                     System.out.print("Informe a porta de destino: ");
@@ -52,25 +64,70 @@ public class RouterManager {
                     this.router.addPort(rt);
                     break;
                 case "3":
+                    if (this.routerNotConfigured()) {
+                        System.out.println("Roteador não configurado!");
+                        continue;
+                    }
                     System.out.print("Informe a porta do roteador de destino: ");
                     destinationPort = this.scanner.nextLine();
                     System.out.print("Informe a mensagem: ");
                     String message = this.scanner.nextLine();
                     String data = "::msg " + destinationPort + " " + message;
-                    byte[] sendData = data.getBytes();
-                    Integer port = this.router.getExitPort(destinationPort);
+                    sendData = data.getBytes();
+                    port = this.router.getExitPort(destinationPort);
+                    if (port != null) {
+                        // cria pacote com o dado, o endereço do server e porta do servidor
+                        sendPacket = new DatagramPacket(sendData, sendData.length, this.router.getIPAddress(), port);
+                        System.out.println(String.format(" Enviando mensagem para o destino %s pela porta %s", destinationPort, port));
+                        //envia o pacote
+                        socket = this.router.getSocketByPort(port);
+                        if (socket != null) {
+                            socket.send(sendPacket);
+                        }
+                    }
+                    break;
+                case "4":
+                    if (this.routerNotConfigured()) {
+                        System.out.println("Roteador não configurado!");
+                        continue;
+                    }
+                    System.out.print("Informe a porta do roteador de destino: ");
+                    destinationPort = this.scanner.nextLine();
+                    System.out.print("Informe o caminho para o arquivo: ");
+                    String path = this.scanner.nextLine();
+                    Path file = Paths.get(path);
+                    String fileName = Utils.formatFileName(file.getFileName().toString()) + " ";
+                    byte[] fileBytes = Files.readAllBytes(file);
+                    byte[] commandBytes = "::file ".getBytes();
+                    byte[] destinationPortBytes = (destinationPort + " ").getBytes();
+                    byte[] fileNameBytes = fileName.getBytes();
+                    sendData = new byte[commandBytes.length + destinationPortBytes.length + fileNameBytes.length + fileBytes.length];
+                    System.arraycopy(commandBytes, 0, sendData, 0, commandBytes.length);
+                    System.arraycopy(destinationPortBytes, 0, sendData, commandBytes.length, destinationPortBytes.length);
+                    System.arraycopy(fileNameBytes, 0, sendData, commandBytes.length + destinationPortBytes.length, fileNameBytes.length);
+                    System.arraycopy(fileBytes, 0, sendData, commandBytes.length + destinationPortBytes.length + fileNameBytes.length, fileBytes.length);
+                    port = this.router.getExitPort(destinationPort);
 
                     // cria pacote com o dado, o endereço do server e porta do servidor
-                    DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, this.router.getIPAddress(), port);
-                    System.out.println(String.format(" Enviado pacote para o destino %s pela porta %s", destinationPort, port));
+                    sendPacket = new DatagramPacket(sendData, sendData.length, this.router.getIPAddress(), port);
+                    System.out.println(String.format(" Enviando imagem para o destino %s pela porta %s", destinationPort, port));
                     //envia o pacote
-                    DatagramSocket socket = this.router.getSocketByPort(port);
+                    socket = this.router.getSocketByPort(port);
                     if (socket != null) {
                         socket.send(sendPacket);
                     }
                     break;
+                case "5":
+                    System.out.println("\n\n##################################");
+                    for (RoutingTable routingTable : this.router.getRoutingTable()) {
+                        System.out.println(routingTable.getDestinationPort() + " " + routingTable.getMetric() + " " + routingTable.getExitPort());
+                    }
+                    System.out.println("##################################");
             }
         }
     }
 
+    private boolean routerNotConfigured() {
+        return this.router.getSockets().isEmpty();
+    }
 }
