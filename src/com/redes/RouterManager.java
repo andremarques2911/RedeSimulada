@@ -1,13 +1,10 @@
 package com.redes;
 
-import java.io.File;
 import java.io.IOException;
 import java.net.*;
-import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Optional;
 import java.util.Scanner;
 
 public class RouterManager {
@@ -40,6 +37,7 @@ public class RouterManager {
             DatagramPacket sendPacket = null;
             switch (sentence) {
                 case "1":
+                    // Deixa serem configuradas somente duas portas
                     if (this.router.getLocalPorts().size() == 2) {
                         System.err.println("Todas as portas disponíveis já estão configuradas.");
                         continue;
@@ -47,10 +45,15 @@ public class RouterManager {
                     System.out.print("Informe a porta de destino: ");
                     destinationPort = this.scanner.nextLine();
                     rt = new RoutingTable(destinationPort, 0, "Local");
+                    // Cria o socket refernte a porta configurada
                     this.router.addSocket(Integer.parseInt(destinationPort));
+                    // Adiciona a porta na tabela de roteamento
                     this.router.addPort(rt);
+                    // Inicia thread para recener mensagens
                     new UnicastReceiver(this.router, this.router.getSockets().get(Integer.parseInt(destinationPort))).start();
+                    // Inicia thread para enviar a tabela de roteamento para os roteadores vizinhos
                     new Rip(this.router).start();
+                    // Inicia a thread para printar no console a tabela de roteamento a cada 10 segundos
 //                    new PrintRoutingTable(this.router).start();
                     break;
                 case "2":
@@ -60,7 +63,10 @@ public class RouterManager {
                     String exitPort = this.scanner.nextLine();
                     System.out.print("Informe a porta local: ");
                     String localPort = this.scanner.nextLine();
+                    // Cria um novo elemento da tabela de roteamento que possui a porta de destino, metrica, porta
+                    // de saida e a porta local do roteador que possui a comunicação com essa porta de saída
                     rt = new RoutingTable(destinationPort, 1, exitPort, localPort);
+                    // Adiciona a porta na tabela de roteamento
                     this.router.addPort(rt);
                     break;
                 case "3":
@@ -101,6 +107,7 @@ public class RouterManager {
                     byte[] commandBytes = "::file ".getBytes();
                     byte[] destinationPortBytes = (destinationPort + " ").getBytes();
                     byte[] fileNameBytes = fileName.getBytes();
+                    // Monta os dados a serem enviados
                     sendData = new byte[commandBytes.length + destinationPortBytes.length + fileNameBytes.length + fileBytes.length];
                     System.arraycopy(commandBytes, 0, sendData, 0, commandBytes.length);
                     System.arraycopy(destinationPortBytes, 0, sendData, commandBytes.length, destinationPortBytes.length);
@@ -108,7 +115,7 @@ public class RouterManager {
                     System.arraycopy(fileBytes, 0, sendData, commandBytes.length + destinationPortBytes.length + fileNameBytes.length, fileBytes.length);
                     port = this.router.getExitPort(destinationPort);
 
-                    // cria pacote com o dado, o endereço do server e porta do servidor
+                    // cria pacote com o dado, o endereço do roteador e a porta de destino
                     sendPacket = new DatagramPacket(sendData, sendData.length, this.router.getIPAddress(), port);
                     System.out.println(String.format(" Enviando imagem para o destino %s pela porta %s", destinationPort, port));
                     //envia o pacote

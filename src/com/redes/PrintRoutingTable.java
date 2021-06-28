@@ -11,7 +11,9 @@ public class PrintRoutingTable extends Thread {
     public void run() {
 
         while (true) {
+            // Se existir alguém na tabela de roteamento
             if (!this.router.getRoutingTable().isEmpty()) {
+                // Exibe no console cada um dos elementos da tabela de roteamento
                 System.out.println("\n\n##################################");
                 for (RoutingTable rt : this.router.getRoutingTable()) {
                     System.out.println(rt.getDestinationPort() + " " + rt.getMetric() + " " + rt.getExitPort());

@@ -101,6 +101,7 @@ public class Router {
     }
 
     public void updateRoutingTable(Integer port, Integer localPort, List<RoutingTable> routingTable) {
+        // Atualiza a métrica e a porta de saída quando a métrica recebida é menor do que a métrica atual
         for (RoutingTable received : routingTable) {
             this.routingTable.stream()
                     .filter(p -> p.getDestinationPort().equals(received.getDestinationPort())
@@ -116,6 +117,7 @@ public class Router {
                     });
         }
 
+        // Insere os elementos que não existem ainda na tabela de roteamento atual
         routingTable
                 .stream()
                 .filter(p -> this.routingTable.stream().noneMatch(r -> r.getDestinationPort().equals(p.getDestinationPort())))
@@ -128,6 +130,7 @@ public class Router {
                     this.routingTable.add(item);
                 });
 
+        // Remove os elementos que existem na tabela de roteamento atual, mas não existem na tabela recebida
         for (RoutingTable received : this.routingTable) {
             if (received.getExitPort().equals(port.toString())) {
                 if (routingTable.stream().noneMatch(p -> p.getDestinationPort().equals(received.getDestinationPort()))) {

@@ -1,7 +1,5 @@
 package com.redes;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class KeepAlive extends Thread{
@@ -24,14 +22,15 @@ public class KeepAlive extends Thread{
     public void run() {
         while (true) {
             try {
+                // Atualiza o tempo de keep alive
                 times.entrySet()
                         .forEach(e -> times.put(e.getKey(), e.getValue() + period));
 
-
+                // Printa na tela os tempos atuais de keep alive das portas ativas no roteador
 //                times.entrySet()
 //                        .forEach(e -> System.out.println(e.getKey() + " | " + e.getValue()));
 
-
+                // Se tiver alguma porta com tempo maior que 30 segundos, então remove ela do roteador
                 times.entrySet()
                         .stream().filter(p -> p.getValue() >= 30)
                         .forEach(f -> router.disable(f.getKey()));
